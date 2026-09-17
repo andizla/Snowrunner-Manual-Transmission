@@ -4,6 +4,19 @@
 
 #include "framework.h"
 #include <Windows.h>
+#ifdef SMT_RESHADE_ADDON
+// The ReShade add-on build (SMT.addon.vcxproj). ReShade owns the swap chain and hands add-ons its own Dear ImGui
+// through a function table, so the D3D11, kiero and ImGui backend headers are not needed. imgui.h comes from
+// deps\imgui and has to match the ImGui version of the ReShade release the headers in deps\reshade belong to.
+#include <objbase.h>   // CoInitialize, which the input unit calls
+#include <atomic>
+#include <set>
+#include <vector>
+#define IMGUI_DEFINE_MATH_OPERATORS
+#define ImTextureID ImU64   // ReShade expects 64-bit texture handles
+#include <imgui.h>
+#include <reshade.hpp>
+#else
 #include <d3d11.h>
 #include <dxgi.h>
 #include <kiero.h>
@@ -11,6 +24,7 @@
 #include <imgui.h>
 #include <imgui_impl_dx11.h>
 #include <imgui_impl_win32.h>
+#endif
 #include <iostream>
 #include <fstream>
 

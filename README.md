@@ -9,6 +9,8 @@ Shifting can either be done with the game's ui shifter and keybinds to shift up/
 2. Extract files from archive into game folder, next to SnowRunner.exe.
 3. The mod will load on game launch.
 
+With ReShade in the game folder, there is also a [ReShade add-on build](#reshade-add-on-build).
+
 #### Use [this subscribe mod](https://mod.io/g/snowrunner/m/manual-text-for-shifter#description) to change the shifter text from AUTO {gear} to GEAR {gear}
 ![alt text](image-1.png)
 
@@ -90,6 +92,22 @@ line (e.g. `GEAR 3`, `GEAR UP`, `CLUTCH`, `RANGE HIGH`, `AWD`, `DIFF LOCK`, `HAN
 a Windows named pipe can talk to it, not just PowerShell. Commands are queued and executed on the
 mod's existing input thread, so they behave exactly like a bound key press.
 
+## ReShade add-on build
+
+`SMT.addon64` is the same mod built as a ReShade add-on. The ASI build finds the game's `Present` call by creating a throwaway D3D11 device, and with ReShade and some of its add-ons in the game folder that device can crash the game at start-up. The add-on build creates no device: ReShade calls it on every frame and draws the menu and the status rows with its own Dear ImGui.
+
+Tested with the ReShade 6.8.0 build with full add-on support.
+
+1. Copy `SMT.addon64` next to `SnowRunner.exe`, where ReShade's `dxgi.dll` sits. `SMT.ini` and `SMT_LOG.txt` stay in that folder, so an existing `SMT.ini` carries over.
+2. Remove `SMT.asi`. Both builds hook the same game functions, and the add-on refuses to start while `SMT.asi` is loaded. The ASI loader can go too, unless another mod needs it.
+3. Start the game. The Add-ons tab of the ReShade overlay lists "SnowRunner Manual Transmission".
+
+The menu is the "Manual Transmission" window inside the ReShade overlay, and the SHOW MENU binding opens the overlay with it. Bindings, ranges, the status rows and remote control work as described above.
+
+ReShade unloads and reloads its add-ons whenever the game drops a graphics device, which SnowRunner does a few times during start-up. The add-on keeps itself loaded through those passes, so `ReShade.log` shows `Add-on "SnowRunner Manual Transmission" was not unregistered!` followed by `Loading externally registered add-on`. Both lines are expected.
+
+To build it, run `build-addon.bat` (`build-addon.bat v143` for Visual Studio 2022's toolset) or build the `SMT.addon` project in the solution. It writes `x64\Release\addon\SMT.addon64`. The project compiles the same sources as the ASI build, with `addon_gui.cpp` and `addon_dllmain.cpp` in place of `gui.cpp` and `dllmain.cpp` and `SMT_RESHADE_ADDON` defined. The headers in `deps\reshade` and `deps\imgui` must come from the same ReShade release: ReShade checks the add-on API version when the add-on registers, and `reshade_overlay.hpp` checks the Dear ImGui version at compile time.
+
 ## Credits
 
 ### [Ferrster](https://github.com/Ferrster) for [Snowrunner-Manual-Gearbox-Mod](https://github.com/Ferrster/Snowrunner-Manual-Gearbox-Mod) - reverse engineered game functions and data structures
@@ -102,3 +120,4 @@ mod's existing input thread, so they behave exactly like a bound key press.
 ### [wgois](https://github.com/wgois) for [OIS](https://github.com/wgois/OIS) - library
 ### [Tessil](https://github.com/Tessil) for [ordered-map](https://github.com/Tessil/ordered-map) - library
 ### [nothings](https://github.com/nothings) for [stb](https://github.com/nothings/stb) - library
+### [crosire](https://github.com/crosire) for [ReShade](https://github.com/crosire/reshade): add-on API
