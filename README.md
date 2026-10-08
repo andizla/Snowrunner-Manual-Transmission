@@ -90,6 +90,18 @@ line (e.g. `GEAR 3`, `GEAR UP`, `CLUTCH`, `RANGE HIGH`, `AWD`, `DIFF LOCK`, `HAN
 a Windows named pipe can talk to it, not just PowerShell. Commands are queued and executed on the
 mod's existing input thread, so they behave exactly like a bound key press.
 
+## Shared state for other mods
+
+Other mods in the game process can follow the transmission without the pipe. Every input tick
+(about 60 times a second) the mod publishes a 64 byte block in the named shared memory
+`Local\SnowRunnerMT.State.<process id>`: the current vehicle, its gear and top gear, the range,
+the clutch (held, and its travel from 0 to 1 when it is bound to a single controller axis), the
+power coefficient of the low gears, the stalls caused by a shift without the clutch, the options
+that change the shifting, and the time of the write. The layout and how to read it are in
+`DLL/state_export.h`: open the mapping read-only, check the magic, version and size, and copy the
+block while its sequence number is even and unchanged. When the mod unloads it clears the
+vehicle flag, and a block whose time stops advancing is stale.
+
 ## Credits
 
 ### [Ferrster](https://github.com/Ferrster) for [Snowrunner-Manual-Gearbox-Mod](https://github.com/Ferrster/Snowrunner-Manual-Gearbox-Mod) - reverse engineered game functions and data structures

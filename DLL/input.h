@@ -50,3 +50,8 @@ extern std::atomic<bool> remoteAutoSnapshot;
 extern std::atomic<bool> remoteAWDSnapshot;
 extern std::atomic<bool> remoteDiffLockSnapshot;
 extern std::atomic<bool> remoteHandbrakeSnapshot;
+
+// The clutch: held is whether its binding is held; when it is bound to a single
+// controller axis, travel is that axis's travel, 0 released to 1 pressed, and
+// the result is true. Called from the input thread.
+extern bool ClutchState(bool& held, float& travel);

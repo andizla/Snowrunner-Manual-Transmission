@@ -4,6 +4,7 @@
 #include "input.h"
 #include "memory.h"
 #include "ipc.h"
+#include "state_export.h"
 
 HMODULE g_hModule = NULL;
 std::atomic<bool> hasConsole = false;
@@ -51,6 +52,7 @@ DWORD WINAPI MainThread(LPVOID lpReserved)
 	//AttachConsole();
 	//Sleep(10000);
 	LoadIniConfig();
+	InitStateExport();
 	InitMemory();
 	InitGui();
 	while (!isGuiInitialized) { Sleep(100); }
@@ -73,6 +75,7 @@ BOOL WINAPI DllMain(HMODULE hMod, DWORD dwReason, LPVOID lpReserved)
 		ShutdownIPC();
 		ShutdownInput();
 		do { Sleep(100); } while (keepAliveInput);
+		ShutdownStateExport();
 		ShutdownMemory();
 		ShutdownGui();
 		DetachConsole();

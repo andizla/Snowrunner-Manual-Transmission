@@ -5,6 +5,7 @@
 #include "game_data.h"
 #include "memory.h"
 #include "ipc.h"
+#include "state_export.h"
 
 extern std::unordered_map <Vehicle*, std::atomic<bool>> IsInAuto;
 
@@ -71,6 +72,37 @@ std::string abbreviate(const std::string& input) {
 	}
 
 	return abbreviation;
+}
+
+bool ClutchState(bool& held, float& travel) {
+	held = wasPressedKb["CLUTCH"] || wasPressedJoy["CLUTCH"];
+	// A binding such as "LWS.a.2.n": the device's abbreviated vendor, the axis
+	// and the direction that counts as pressed. A wheel's pedal axis runs the
+	// full range, from one end at rest to the other pressed.
+	const std::string bind = iniConfig["CONTROLLER"]["CLUTCH"].as<std::string>();
+	const size_t at = bind.find(".a.");
+	if (at == std::string::npos || bind.find('+') != std::string::npos) {
+		return false;
+	}
+	int axis = -1;
+	char direction = 0;
+	if (sscanf_s(bind.c_str() + at + 3, "%d.%c", &axis, &direction, 1) != 2 || axis < 0 || (direction != 'p' && direction != 'n')) {
+		return false;
+	}
+	const std::string vendor = bind.substr(0, at);
+	for (auto& js : joystickList) {
+		if (abbreviate(js->vendor()) != vendor) {
+			continue;
+		}
+		const OIS::JoyStickState& state = js->getJoyStickState();
+		if (axis >= (int)state.mAxes.size()) {
+			return false;
+		}
+		const float share = (float)(state.mAxes[axis].abs - OIS::JoyStick::MIN_AXIS) / (float)(OIS::JoyStick::MAX_AXIS - OIS::JoyStick::MIN_AXIS);
+		travel = std::clamp(direction == 'p' ? share : 1.0f - share, 0.0f, 1.0f);
+		return true;
+	}
+	return false;
 }
 
 namespace SMT {
@@ -268,6 +300,7 @@ DWORD WINAPI ProcessInput(LPVOID lpReserved) {
 						if (!wasPressedKb["CLUTCH"] && !wasPressedJoy["CLUTCH"]) {
 							if (remoteCmd.starts_with("GEAR") && remoteCmd != "GEAR N") {
 								veh->StallCounter = 5;
+								CountStateStall();
 							}
 						}
 					}
@@ -377,6 +410,7 @@ DWORD WINAPI ProcessInput(LPVOID lpReserved) {
 						if (!wasPressedKb["CLUTCH"] && !wasPressedJoy["CLUTCH"]) {
 							if (fnc.starts_with("GEAR") && fnc != "GEAR N") {
 								veh->StallCounter = 5;
+								CountStateStall();
 							}
 						}
 					}
@@ -388,6 +422,8 @@ DWORD WINAPI ProcessInput(LPVOID lpReserved) {
 				}
 			}
 		}
+
+		PublishState();
 
 		if (GetAsyncKeyState(VK_END) & 0x8000 && GetAsyncKeyState(VK_LCONTROL) & 0x8000 && GetAsyncKeyState(VK_LSHIFT) & 0x8000) {
 			DetachDLL();

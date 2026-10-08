@@ -222,6 +222,7 @@
     <ClInclude Include="kiero\kiero.h" />
     <ClInclude Include="memory.h" />
     <ClInclude Include="shared.h" />
+    <ClInclude Include="state_export.h" />
     <ClInclude Include="tsl\ordered_hash.h" />
     <ClInclude Include="tsl\ordered_map.h" />
     <ClInclude Include="tsl\ordered_set.h" />
@@ -242,6 +243,7 @@
     <ClCompile Include="ipc.cpp" />
     <ClCompile Include="kiero\kiero.cpp" />
     <ClCompile Include="memory.cpp" />
+    <ClCompile Include="state_export.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
