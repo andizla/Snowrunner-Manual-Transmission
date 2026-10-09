@@ -4,12 +4,27 @@ rem the game, keeping the one it replaces as x64\rollback\SMT_previous.addon64 a
 rem SMT_original.addon64. Close the game first. Without an SMT.addon64 in the game it is a first install; it stops when
 rem SMT.asi is in the game too (the two builds hook the same game functions, and the add-on refuses to start beside it)
 rem or when another add-on there looks like SMT under another name, so the mod is never loaded twice.
+rem It first brings this folder up to the branch on GitHub (a fast forward; it stops on local changes).
 rem   build_install.bat [the game's Sources\Bin folder]
 rem Without a folder the Steam default is used. Run it from a cmd window or by a double click.
+rem It runs from a copy in %TEMP%: the pull may bring a new build_install.bat, and cmd reads a running batch file from
+rem disk as it goes.
+if "%~1"=="--copy" goto start
+del "%TEMP%\smt_build_install.bat" 2>nul
+copy /y "%~f0" "%TEMP%\smt_build_install.bat" >nul
+if not exist "%TEMP%\smt_build_install.bat" (echo Could not copy build_install.bat to the temp folder. & pause & exit /b 1)
+"%TEMP%\smt_build_install.bat" --copy "%~dp0" %*
+:start
 setlocal
-cd /d "%~dp0"
-set "BIN=%~1"
+cd /d "%~2"
+set "BIN=%~3"
 if "%BIN%"=="" set "BIN=C:\Program Files (x86)\Steam\steamapps\common\Snowrunner\Sources\Bin"
+set "BRANCH=claude/vibrant-darwin-anbhqw"
+
+echo == the branch
+git fetch origin || goto fail
+git switch %BRANCH% || goto fail
+git merge --ff-only origin/%BRANCH% || goto fail
 
 echo == Visual Studio
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -28,7 +43,7 @@ echo Branch: %GITBRANCH%
 
 echo == the build
 "%MSBUILD%" "DLL\SMT.addon.vcxproj" /p:Configuration=Release /p:Platform=x64 %TOOLSET% /m /v:minimal /nologo || goto fail
-set "ADDON=%~dp0x64\Release\addon\SMT.addon64"
+set "ADDON=%CD%\x64\Release\addon\SMT.addon64"
 if not exist "%ADDON%" goto noaddon
 
 echo == the install
