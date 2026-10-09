@@ -64,7 +64,7 @@ uint32_t PatternScan(const char* signature, size_t begin = 0, size_t end = 0)
 	if (count == 1) {
 		return result;
 	}
-	return NULL;
+	return 0;
 }
 
 uint32_t ToLittleEndian(uint32_t value) {
@@ -166,7 +166,7 @@ void InitMemory() {
 	if (Vehicle* veh = GetCurrentVehicle()) {
 		IsInAuto[veh] = veh->TruckAction->IsInAutoMode;
 		veh->TruckAction->IsInAutoMode = false;
-		veh->ShiftToGear(1, 1.05);
+		veh->ShiftToGear(1, 1.05f);
 	}
 
 	LogMessage("init", base);

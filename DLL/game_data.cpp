@@ -124,7 +124,7 @@ void Hooked_ShiftToAutoGear(Vehicle* veh) {
 	IsInAuto[veh] = true;
 
 	if (veh->TruckAction->Gear_1 == (GetMaxGearO(veh) + 1)) {
-		veh->ShiftToGear(round(veh->GetMaxGear() * 0.8), 1.0f);
+		veh->ShiftToGear((std::int32_t)lround(veh->GetMaxGear() * 0.8), 1.0f);
 	}
 	else if (veh->TruckAction->Gear_1 <= 1) {
 		veh->ShiftToGear(1, 1.05f);
@@ -173,7 +173,7 @@ void Hooked_SetPowerCoef(Vehicle* veh, float coef) {
 		coef = currentCoef;
 	}
 	if (IsInAuto[veh]) {
-		coef = 1.05;
+		coef = 1.05f;
 	}
 	SetPowerCoefO(veh, coef);
 	ShiftGearO(veh, veh->TruckAction->Gear_2);
@@ -189,7 +189,7 @@ void Hooked_SetCurrentVehicle(combine_TRUCK_CONTROL* truckCtrl, Vehicle* veh) {
 			!iniConfig["OPTIONS"]["IMMERSIVE MODE"].as<bool>();
 		if (!gameShifts) {
 			if (IsInAuto[veh]) {
-				veh->ShiftToGear(1, 1.05);
+				veh->ShiftToGear(1, 1.05f);
 			}
 			veh->TruckAction->IsInAutoMode = false;
 		}
