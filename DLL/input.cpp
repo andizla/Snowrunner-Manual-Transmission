@@ -76,17 +76,29 @@ std::string abbreviate(const std::string& input) {
 
 bool ClutchState(bool& held, float& travel) {
 	held = wasPressedKb["CLUTCH"] || wasPressedJoy["CLUTCH"];
-	// A binding such as "LWS.a.2.n": the device's abbreviated vendor, the axis
-	// and the direction that counts as pressed. A wheel's pedal axis runs the
-	// full range, from one end at rest to the other pressed.
+	// A binding such as "LWS.a.2.n" (an axis) or "LWS.s.x.0.p" (a slider, as some pedals are): the device's
+	// abbreviated vendor, the axis or slider and the direction that counts as pressed. A wheel's pedal runs the full
+	// range, from one end at rest to the other pressed. How the binding was read goes into the log once each time it
+	// changes.
+	static std::string logged = "\x01";
 	const std::string bind = iniConfig["CONTROLLER"]["CLUTCH"].as<std::string>();
-	const size_t at = bind.find(".a.");
-	if (at == std::string::npos || bind.find('+') != std::string::npos) {
-		return false;
+	const size_t axisAt = bind.find(".a."), sliderAt = bind.find(".s.");
+	const bool slider = axisAt == std::string::npos && sliderAt != std::string::npos;
+	const size_t at = slider ? sliderAt : axisAt;
+	int index = -1;
+	char sliderAxis = 0, direction = 0;
+	bool readable = at != std::string::npos && bind.find('+') == std::string::npos;
+	if (readable) {
+		readable = slider ? sscanf_s(bind.c_str() + at + 3, "%c.%d.%c", &sliderAxis, 1, &index, &direction, 1) == 3 && (sliderAxis == 'x' || sliderAxis == 'y')
+			: sscanf_s(bind.c_str() + at + 3, "%d.%c", &index, &direction, 1) == 2;
+		readable = readable && index >= 0 && (direction == 'p' || direction == 'n');
 	}
-	int axis = -1;
-	char direction = 0;
-	if (sscanf_s(bind.c_str() + at + 3, "%d.%c", &axis, &direction, 1) != 2 || axis < 0 || (direction != 'p' && direction != 'n')) {
+	if (bind != logged) {
+		logged = bind;
+		LogMessage("state export: the clutch binding", bind, readable ? (slider ? "is a slider, its travel is published" : "is an axis, its travel is published")
+			: "is no single axis or slider, so only held or not is published");
+	}
+	if (!readable) {
 		return false;
 	}
 	const std::string vendor = bind.substr(0, at);
@@ -95,10 +107,20 @@ bool ClutchState(bool& held, float& travel) {
 			continue;
 		}
 		const OIS::JoyStickState& state = js->getJoyStickState();
-		if (axis >= (int)state.mAxes.size()) {
-			return false;
+		int value = 0;
+		if (slider) {
+			if (index >= 4) {
+				return false;
+			}
+			value = sliderAxis == 'x' ? state.mSliders[index].abX : state.mSliders[index].abY;
 		}
-		const float share = (float)(state.mAxes[axis].abs - OIS::JoyStick::MIN_AXIS) / (float)(OIS::JoyStick::MAX_AXIS - OIS::JoyStick::MIN_AXIS);
+		else {
+			if (index >= (int)state.mAxes.size()) {
+				return false;
+			}
+			value = state.mAxes[index].abs;
+		}
+		const float share = (float)(value - OIS::JoyStick::MIN_AXIS) / (float)(OIS::JoyStick::MAX_AXIS - OIS::JoyStick::MIN_AXIS);
 		travel = std::clamp(direction == 'p' ? share : 1.0f - share, 0.0f, 1.0f);
 		return true;
 	}
