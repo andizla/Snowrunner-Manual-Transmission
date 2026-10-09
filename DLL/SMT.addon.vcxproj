@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The ReShade add-on build. Same sources as DLL.vcxproj, with addon_gui.cpp and addon_dllmain.cpp in place of gui.cpp
+     and dllmain.cpp, SMT_RESHADE_ADDON defined, and the ReShade and Dear ImGui headers from ..\deps instead of the
+     imgui, kiero and stb folders. x64 only, like the game. Output: x64\<configuration>\addon\SMT.addon64. -->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{72C58A41-2594-4611-BE44-FF8778F0AD0D}</ProjectGuid>
+    <RootNamespace>SMTAddon</RootNamespace>
+    <ProjectName>SMT.addon</ProjectName>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <!-- Both projects live in this folder and compile the same file names with different defines, so this one keeps
+       its intermediate and output files apart from DLL.vcxproj's. -->
+  <PropertyGroup>
+    <TargetName>SMT</TargetName>
+    <TargetExt>.addon64</TargetExt>
+    <OutDir>$(ProjectDir)..\x64\$(Configuration)\addon\</OutDir>
+    <IntDir>$(ProjectDir)obj\addon\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>shared.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..\deps\imgui;$(ProjectDir)..\deps\reshade\include;$(ProjectDir)detours\include;$(ProjectDir)ois\includes;$(ProjectDir)tsl;$(ProjectDir)inifile-cpp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <!-- OIS.lib and detours.lib are vendored as release (/MD) binaries only, so Debug links the same CRT. -->
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>dxguid.lib;detours.lib;user32.lib;OIS.lib;dinput8.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)ois\lib;$(ProjectDir)detours\lib.X64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>SMT_RESHADE_ADDON;_DEBUG;DLL_EXPORTS;_WINDOWS;_USRDLL;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <Optimization>MaxSpeed</Optimization>
+      <PreprocessorDefinitions>SMT_RESHADE_ADDON;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="config.h" />
+    <ClInclude Include="framework.h" />
+    <ClInclude Include="game_data.h" />
+    <ClInclude Include="gui.h" />
+    <ClInclude Include="inifile-cpp\include\inicpp.h" />
+    <ClInclude Include="input.h" />
+    <ClInclude Include="ipc.h" />
+    <ClInclude Include="memory.h" />
+    <ClInclude Include="shared.h" />
+    <ClInclude Include="state_export.h" />
+    <ClInclude Include="tsl\ordered_hash.h" />
+    <ClInclude Include="tsl\ordered_map.h" />
+    <ClInclude Include="tsl\ordered_set.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="addon_dllmain.cpp" />
+    <ClCompile Include="addon_gui.cpp" />
+    <ClCompile Include="config.cpp" />
+    <ClCompile Include="game_data.cpp" />
+    <ClCompile Include="input.cpp" />
+    <ClCompile Include="ipc.cpp" />
+    <ClCompile Include="memory.cpp" />
+    <ClCompile Include="state_export.cpp" />
+    <ClCompile Include="pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

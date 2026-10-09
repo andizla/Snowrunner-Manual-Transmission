@@ -1,7 +1,9 @@
 @echo off
-rem Builds SMT (Release, x64) with the newest Visual Studio on this PC and installs SMT.asi into the game, keeping
-rem the one it replaces as x64\rollback\SMT_previous.asi and the very first one as SMT_original.asi. Close the game
-rem first. It only replaces an SMT.asi that is already installed, so the mod is never loaded twice under two names.
+rem Builds the ReShade add-on (SMT.addon64, Release, x64) with the newest Visual Studio on this PC and installs it into
+rem the game, keeping the one it replaces as x64\rollback\SMT_previous.addon64 and the very first one as
+rem SMT_original.addon64. Close the game first. Without an SMT.addon64 in the game it is a first install; it stops when
+rem SMT.asi is in the game too (the two builds hook the same game functions, and the add-on refuses to start beside it)
+rem or when another add-on there looks like SMT under another name, so the mod is never loaded twice.
 rem   build_install.bat [the game's Sources\Bin folder]
 rem Without a folder the Steam default is used. Run it from a cmd window or by a double click.
 setlocal
@@ -25,31 +27,44 @@ for /f "delims=" %%b in ('git rev-parse --abbrev-ref HEAD 2^>nul') do set "GITBR
 echo Branch: %GITBRANCH%
 
 echo == the build
-"%MSBUILD%" "SnowRunner Manual Transmission.sln" /p:Configuration=Release /p:Platform=x64 %TOOLSET% /m /v:minimal /nologo || goto fail
-set "ASI=%~dp0x64\Release\SMT.asi"
-if not exist "%ASI%" set "ASI=%~dp0DLL\x64\Release\SMT.asi"
-if not exist "%ASI%" goto noasi
+"%MSBUILD%" "DLL\SMT.addon.vcxproj" /p:Configuration=Release /p:Platform=x64 %TOOLSET% /m /v:minimal /nologo || goto fail
+set "ADDON=%~dp0x64\Release\addon\SMT.addon64"
+if not exist "%ADDON%" goto noaddon
 
 echo == the install
 tasklist /fi "imagename eq SnowRunner.exe" 2>nul | find /i "SnowRunner.exe" >nul && goto running
 if not exist "%BIN%\SnowRunner.exe" goto nobin
-if not exist "%BIN%\SMT.asi" goto noold
+set "ASI="
+for %%d in ("%BIN%" "%BIN%\scripts" "%BIN%\plugins") do if exist "%%~d\SMT.asi" set "ASI=%%~d\SMT.asi"
+if defined ASI goto asi
+if not exist "%BIN%\SMT.addon64" goto first
 if not exist x64\rollback mkdir x64\rollback
 rem the one installed before this script ever ran is kept for good, the last one replaced as well
-if not exist x64\rollback\SMT_original.asi copy /y "%BIN%\SMT.asi" x64\rollback\SMT_original.asi >nul
-copy /y "%BIN%\SMT.asi" x64\rollback\SMT_previous.asi >nul || goto nocopy
-copy /y "%ASI%" "%BIN%\SMT.asi" >nul || goto nocopy
+if not exist x64\rollback\SMT_original.addon64 copy /y "%BIN%\SMT.addon64" x64\rollback\SMT_original.addon64 >nul
+copy /y "%BIN%\SMT.addon64" x64\rollback\SMT_previous.addon64 >nul || goto nocopy
+copy /y "%ADDON%" "%BIN%\SMT.addon64" >nul || goto nocopy
 echo.
-echo INSTALL OK: SMT.asi from %GITBRANCH% is in the game. The one it replaced is x64\rollback\SMT_previous.asi,
-echo the one from before this script first ran is x64\rollback\SMT_original.asi.
+echo INSTALL OK: SMT.addon64 from %GITBRANCH% is in the game. The one it replaced is x64\rollback\SMT_previous.addon64,
+echo the one from before this script first ran is x64\rollback\SMT_original.addon64.
+pause
+exit /b 0
+
+:first
+set "OTHER="
+for /f "delims=" %%f in ('dir /b "%BIN%\*smt*.addon64" "%BIN%\*transmission*.addon64" "%BIN%\*smt*.addon" "%BIN%\*transmission*.addon" 2^>nul') do set "OTHER=%BIN%\%%f"
+if defined OTHER goto other
+copy /y "%ADDON%" "%BIN%\SMT.addon64" >nul || goto nocopy
+echo.
+echo INSTALL OK: SMT.addon64 from %GITBRANCH% is in the game for the first time. The Add-ons tab of the ReShade
+echo overlay lists it as "SnowRunner Manual Transmission".
 pause
 exit /b 0
 
 :novs
 echo No Visual Studio with MSBuild was found (vswhere.exe or MSBuild.exe is missing).
 goto fail
-:noasi
-echo The build ran but no SMT.asi was found under x64\Release.
+:noaddon
+echo The build ran but no SMT.addon64 was found under x64\Release\addon.
 goto fail
 :running
 echo The game is running. Close it and run build_install.bat again.
@@ -58,13 +73,15 @@ goto fail
 echo There is no SnowRunner.exe in "%BIN%".
 echo Give the game's Sources\Bin folder: build_install.bat "D:\Games\Snowrunner\Sources\Bin"
 goto fail
-:noold
-echo There is no SMT.asi in "%BIN%" to replace. The .asi files there:
-dir /b "%BIN%\*.asi"
-echo If SMT is installed under another name, rename it SMT.asi first, or copy "%ASI%" in by hand.
+:asi
+echo "%ASI%" is in the game: the add-on does not start beside the ASI build. Take SMT.asi out and run this again.
+goto fail
+:other
+echo There is no SMT.addon64 in the game, but "%OTHER%" looks like SMT under another name.
+echo Rename it SMT.addon64 and run build_install.bat again, so the mod is not loaded twice.
 goto fail
 :nocopy
-echo SMT.asi could not be copied into "%BIN%". Is the game still closing? Try again, or run the window as administrator.
+echo SMT.addon64 could not be copied into "%BIN%". Is the game still closing? Try again, or run the window as administrator.
 goto fail
 :fail
 echo.
