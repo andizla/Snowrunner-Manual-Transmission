@@ -183,10 +183,16 @@ void Hooked_SetCurrentVehicle(combine_TRUCK_CONTROL* truckCtrl, Vehicle* veh) {
 	range = 0;
 	if (veh) {
 		IsInAuto[veh] = veh->TruckAction->IsInAutoMode;
-		if (IsInAuto[veh]) {
-			veh->ShiftToGear(1, 1.05);
+		// A truck taken in the game's automatic stays in it while the game's own shifting is let run (no option keeps
+		// it off); with one of them on it starts in the first gear with the automatic off, as the options want.
+		const bool gameShifts = !iniConfig["OPTIONS"]["DISABLE GAME SHIFTING"].as<bool>() && !iniConfig["OPTIONS"]["REQUIRE CLUTCH"].as<bool>() &&
+			!iniConfig["OPTIONS"]["IMMERSIVE MODE"].as<bool>();
+		if (!gameShifts) {
+			if (IsInAuto[veh]) {
+				veh->ShiftToGear(1, 1.05);
+			}
+			veh->TruckAction->IsInAutoMode = false;
 		}
-		veh->TruckAction->IsInAutoMode = false;
 	}
 	SetCurrentVehicleO(truckCtrl, veh);
 }
